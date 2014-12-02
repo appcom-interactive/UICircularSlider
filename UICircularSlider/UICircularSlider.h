@@ -77,6 +77,11 @@ typedef enum {
 @property(nonatomic, getter=isContinuous) BOOL continuous;
 
 /**
+ verhindert überspringen bei Nullstellung
+ */
+@property(nonatomic, getter=snapsToMinMax) BOOL snapToMinMax;
+
+/**
  * The current graphical style of the receiver.
  *
  * The value of this property is a constant that specifies the style of the slider.

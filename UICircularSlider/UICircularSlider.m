@@ -15,6 +15,9 @@
 
 @property (nonatomic) CGPoint thumbCenterPoint;
 
+#define NOT_SET (-1)
+@property (nonatomic) CGFloat oldAngle;
+
 #pragma mark - Init and Setup methods
 - (void)setup;
 
@@ -119,7 +122,7 @@
 	self.thumbTintColor = [UIColor darkGrayColor];
 	self.continuous = YES;
 	self.thumbCenterPoint = CGPointZero;
-	
+    self.oldAngle = NOT_SET;
     /**
      * This tapGesture isn't used yet but will allow to jump to a specific location in the circle
      */
@@ -227,12 +230,19 @@
 	return CGRectContainsPoint(thumbTouchRect, point);
 }
 
+
+
 /** @name UIGestureRecognizer management methods */
 #pragma mark - UIGestureRecognizer management methods
 - (void)panGestureHappened:(UIPanGestureRecognizer *)panGestureRecognizer {
 	CGPoint tapLocation = [panGestureRecognizer locationInView:self];
 	switch (panGestureRecognizer.state) {
-		case UIGestureRecognizerStateChanged: {
+        case UIGestureRecognizerStateBegan:
+            NSLog(@"UIGestureRecognizerStateBegan");
+            self.oldAngle = NOT_SET;
+            break;
+        case UIGestureRecognizerStateChanged: {
+            NSLog(@"UIGestureRecognizerStateChanged");
 			CGFloat radius = [self sliderRadius];
 			CGPoint sliderCenter = CGPointMake(self.bounds.size.width/2, self.bounds.size.height/2);
 			CGPoint sliderStartPoint = CGPointMake(sliderCenter.x, sliderCenter.y - radius);
@@ -244,11 +254,30 @@
 			else {
 				angle = 2*M_PI - angle;
 			}
+            
+            if (self.oldAngle != NOT_SET && self.snapsToMinMax && (angle - self.oldAngle) > M_PI)
+            {
+                
+                self.value = self.minimumValue;
+                self.oldAngle = 0.0;
+            }
+            else if (self.oldAngle != NOT_SET && self.snapsToMinMax && (self.oldAngle - angle) > M_PI)
+            {
+                self.value = self.maximumValue;
+                self.oldAngle = 2*M_PI;
+            }
+            else
+            {
+                NSLog(@"translate value");
+                self.value = translateValueFromSourceIntervalToDestinationInterval(angle, 0, 2*M_PI, self.minimumValue, self.maximumValue);
+                self.oldAngle = angle;
+            }
 			
-			self.value = translateValueFromSourceIntervalToDestinationInterval(angle, 0, 2*M_PI, self.minimumValue, self.maximumValue);
+			
 			break;
 		}
         case UIGestureRecognizerStateEnded:
+            NSLog(@"UIGestureRecognizerStateEnded");
             if (!self.isContinuous) {
                 [self sendActionsForControlEvents:UIControlEventValueChanged];
             }
@@ -258,6 +287,7 @@
             else {
                 [self sendActionsForControlEvents:UIControlEventTouchUpOutside];
             }
+            self.oldAngle = NOT_SET;
             break;
 		default:
 			break;
